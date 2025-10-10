@@ -1,8 +1,8 @@
 class GitFoil < Formula
   desc "Quantum-resistant Git encryption with 6-layer defense"
   homepage "https://github.com/code-of-kai/git-foil"
-  url "file:///Users/kaitaylor/Documents/Coding/git-foil"
-  version "0.7.0"
+  url "https://github.com/code-of-kai/git-foil/archive/refs/tags/v0.7.0.tar.gz"
+  sha256 "" # TODO: Fill in after creating GitHub release
   license "MIT"
   head "https://github.com/code-of-kai/git-foil.git", branch: "master"
 
@@ -18,17 +18,20 @@ class GitFoil < Formula
     system "mix", "local.rebar", "--force"
     system "mix", "deps.get"
 
-    # Compile Rust NIFs
+    # Compile everything (including Rust NIFs)
     system "mix", "compile"
 
-    # Build escript
-    system "mix", "escript.build"
+    # Install the entire application to libexec
+    libexec.install Dir["*"]
 
-    # Install the escript binary
-    bin.install "git-foil"
+    # Create wrapper script that invokes the application
+    (bin/"git-foil").write <<~EOS
+      #!/bin/bash
+      cd "#{libexec}" && MIX_ENV=prod mix run -e "GitFoil.CLI.main(System.argv())" -- "$@"
+    EOS
   end
 
   test do
-    system "#{bin}/git-foil", "--help"
+    system "#{bin}/git-foil", "--version"
   end
 end
