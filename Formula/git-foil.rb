@@ -3,7 +3,6 @@ class GitFoil < Formula
   homepage "https://github.com/code-of-kai/git-foil"
   url "https://github.com/code-of-kai/git-foil/archive/refs/heads/master.tar.gz"
   version "0.3.0"
-  sha256 :no_check  # Using master branch - checksum changes with each commit
   license "MIT"
   head "https://github.com/code-of-kai/git-foil.git", branch: "master"
 
