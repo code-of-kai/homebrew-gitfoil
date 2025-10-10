@@ -11,11 +11,10 @@ Follow the installation instructions there.
 ## Quick Install (if you're already here)
 
 ```bash
-brew tap code-of-kai/gitfoil
-brew install git-foil
+brew install code-of-kai/gitfoil/git-foil
 ```
 
-That's it! The `git-foil` command is now available.
+That's it! One command. The `git-foil` command is now available.
 
 ---
 
