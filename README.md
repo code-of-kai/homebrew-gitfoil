@@ -1,18 +1,28 @@
-# Code-of-kai Gitfoil
+# GitFoil Homebrew Tap
 
-## How do I install these formulae?
+**Looking to install GitFoil?** You're in the wrong place!
 
-`brew install code-of-kai/gitfoil/<formula>`
+👉 **Go to the main GitFoil repository:** https://github.com/code-of-kai/git-foil
 
-Or `brew tap code-of-kai/gitfoil` and then `brew install <formula>`.
+Follow the installation instructions there.
 
-Or, in a `brew bundle` `Brewfile`:
+---
 
-```ruby
-tap "code-of-kai/gitfoil"
-brew "<formula>"
+## Quick Install (if you're already here)
+
+```bash
+brew tap code-of-kai/gitfoil
+brew install git-foil
 ```
 
-## Documentation
+That's it! The `git-foil` command is now available.
 
-`brew help`, `man brew` or check [Homebrew's documentation](https://docs.brew.sh).
+---
+
+## What is this repository?
+
+This is the Homebrew tap (package repository) for GitFoil. It contains the installation formula that tells Homebrew how to build and install GitFoil.
+
+**You don't need to interact with this repository directly.** The main GitFoil repository at https://github.com/code-of-kai/git-foil has all the documentation, usage instructions, and everything you need.
+
+This repo is just plumbing for Homebrew. Move along! 🚀
