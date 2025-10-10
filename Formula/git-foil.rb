@@ -1,8 +1,9 @@
 class GitFoil < Formula
   desc "Quantum-resistant Git encryption with 6-layer defense"
   homepage "https://github.com/code-of-kai/git-foil"
-  url "https://github.com/code-of-kai/git-foil/archive/refs/tags/v0.7.0.tar.gz"
-  sha256 "" # TODO: Fill in after creating GitHub release
+  url "https://github.com/code-of-kai/git-foil/archive/refs/heads/master.tar.gz"
+  version "0.3.0"
+  sha256 :no_check  # Using master branch - checksum changes with each commit
   license "MIT"
   head "https://github.com/code-of-kai/git-foil.git", branch: "master"
 
