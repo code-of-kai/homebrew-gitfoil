@@ -1,5 +1,5 @@
 class GitFoil < Formula
-  desc "Quantum-resistant Git encryption with 6-layer defense"
+  desc "Quantum-resistant Git encryption CLI"
   homepage "https://github.com/code-of-kai/git-foil"
   url "https://github.com/code-of-kai/git-foil/archive/refs/tags/v1.0.1.tar.gz"
   sha256 "2f4c49b6342e92b996ac5e4ef1f931e21e17b0f8dcf07373b305e758d595072e"
@@ -7,32 +7,32 @@ class GitFoil < Formula
   head "https://github.com/code-of-kai/git-foil.git", branch: "master"
 
   depends_on "elixir"
+  depends_on "erlang"
   depends_on "rust" => :build
 
   def install
-    # Set Mix environment to production
     ENV["MIX_ENV"] = "prod"
 
-    # Get dependencies
     system "mix", "local.hex", "--force"
     system "mix", "local.rebar", "--force"
     system "mix", "deps.get"
-
-    # Compile everything (including Rust NIFs via Rustler)
     system "mix", "compile"
 
-    # Build an Elixir release (which properly embeds NIFs for the target platform)
-    system "mix", "release"
+    libexec.install "priv"
 
-    # Install the release binary to bin/
-    bin.install "_build/prod/rel/git_foil/bin/git_foil", "git-foil"
+    system "mix", "escript.build"
+    libexec.install "git-foil"
 
-    # Install runtime dependencies from the release
-    libexec.install "_build/prod/rel/git_foil/lib"
-    libexec.install "_build/prod/rel/git_foil/releases"
+    (bin/"git-foil").write <<~EOS
+      #!/bin/bash
+      set -euo pipefail
+      cd "#{libexec}"
+      exec "#{libexec}/git-foil" "$@"
+    EOS
+    (bin/"git-foil").chmod 0o755
   end
 
   test do
-    system "#{bin}/git-foil", "--version"
+    assert_match "GitFoil version", shell_output("#{bin}/git-foil version")
   end
 end
