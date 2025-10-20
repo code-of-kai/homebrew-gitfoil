@@ -21,11 +21,15 @@ class GitFoil < Formula
     # Compile everything (including Rust NIFs via Rustler)
     system "mix", "compile"
 
-    # Build a self-contained escript with all NIFs embedded
-    system "mix", "escript.build"
+    # Build an Elixir release (which properly embeds NIFs for the target platform)
+    system "mix", "release"
 
-    # Install the compiled escript binary directly
-    bin.install "git-foil"
+    # Install the release binary to bin/
+    bin.install "_build/prod/rel/git_foil/bin/git_foil", "git-foil"
+
+    # Install runtime dependencies from the release
+    libexec.install "_build/prod/rel/git_foil/lib"
+    libexec.install "_build/prod/rel/git_foil/releases"
   end
 
   test do
