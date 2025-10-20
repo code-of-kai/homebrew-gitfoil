@@ -18,17 +18,14 @@ class GitFoil < Formula
     system "mix", "local.rebar", "--force"
     system "mix", "deps.get"
 
-    # Compile everything (including Rust NIFs)
+    # Compile everything (including Rust NIFs via Rustler)
     system "mix", "compile"
 
-    # Install the entire application to libexec
-    libexec.install Dir["*"]
+    # Build a self-contained escript with all NIFs embedded
+    system "mix", "escript.build"
 
-    # Create wrapper script that invokes the application
-    (bin/"git-foil").write <<~EOS
-      #!/bin/bash
-      cd "#{libexec}" && MIX_ENV=prod mix run -e "GitFoil.CLI.main(System.argv())" -- "$@"
-    EOS
+    # Install the compiled escript binary directly
+    bin.install "git-foil"
   end
 
   test do
