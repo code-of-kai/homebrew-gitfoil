@@ -1,8 +1,8 @@
 class GitFoil < Formula
   desc "Quantum-resistant Git encryption CLI"
   homepage "https://github.com/code-of-kai/git-foil"
-  url "https://github.com/code-of-kai/git-foil/archive/refs/tags/v1.0.2.tar.gz"
-  sha256 "9adba32031e8888c320f88b970f958abf252d6cbe857733e308f71fa1f44fe6b"
+  url "https://github.com/code-of-kai/git-foil/archive/refs/tags/v1.0.3.tar.gz"
+  sha256 "df71337c7b5052967fe6074df92749d155b786bcebf4959c3942e7a8cd5b4c09"
   license "MIT"
   head "https://github.com/code-of-kai/git-foil.git", branch: "master"
 
