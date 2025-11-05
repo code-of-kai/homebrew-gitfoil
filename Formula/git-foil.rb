@@ -28,7 +28,6 @@ class GitFoil < Formula
       #!/bin/bash
       set -euo pipefail
       export GIT_FOIL_NIF_DIR="#{libexec}/priv/native"
-      cd "#{libexec}"
       exec "#{libexec}/git-foil" "$@"
     EOS
     (bin/"git-foil").chmod 0o755
