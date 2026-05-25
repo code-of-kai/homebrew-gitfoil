@@ -1,10 +1,9 @@
 class GitFoil < Formula
   desc "Quantum-resistant Git encryption CLI"
   homepage "https://github.com/code-of-kai/git-foil"
-  url "https://github.com/code-of-kai/git-foil/archive/refs/tags/v1.0.8.tar.gz"
-  sha256 "4203662637b5426e048f52dc39d85036499a745ce346f8e6dbf1753d671c379e"
+  url "https://github.com/code-of-kai/git-foil/archive/refs/tags/v1.0.9.tar.gz"
+  sha256 "6f136ec411b7a4360ed15100607bf9d904cfa2d1ce6e7a19e96b003bd15f94bf"
   license "MIT"
-  head "https://github.com/code-of-kai/git-foil.git", branch: "master"
 
   depends_on "elixir"
   depends_on "erlang"
@@ -26,9 +25,47 @@ class GitFoil < Formula
 
     (bin/"git-foil").write <<~EOS
       #!/bin/bash
-      set -euo pipefail
+      # For `clean` and `smudge` (git filter subcommands), retries on SIGBUS
+      # (exit 138 = 128 + signal 10) which can occur under concurrent
+      # invocations during BEAM NIF dlopen on macOS. The race lives in dyld's
+      # mmap + unified-buffer-cache interaction: many short-lived processes
+      # dlopening the same .so files in parallel can hit a page-translation
+      # fault in dyld4::Loader::mapSegments -> MachOFile::isMachO. Triggered
+      # most often by `git stash push -u` invoking the clean filter on many
+      # files in rapid succession.
+      #
+      # Retry is safe: clean/smudge are deterministic over their stdin, and
+      # the SIGBUS occurs during BEAM startup before stdin is read. Stdin is
+      # buffered to a private tempfile (mktemp default mode 0600) so each
+      # retry sees the same input.
+
+      set -uo pipefail
       export GIT_FOIL_NIF_DIR="#{libexec}/priv/native"
-      exec "#{libexec}/git-foil" "$@"
+      BIN="#{libexec}/git-foil"
+
+      case "${1:-}" in
+          clean|smudge)
+              ;;
+          *)
+              exec "$BIN" "$@"
+              ;;
+      esac
+
+      stdin_file=$(mktemp -t gitfoil-stdin.XXXXXX)
+      trap 'rm -f "$stdin_file"' EXIT INT TERM
+      cat > "$stdin_file"
+
+      rc=0
+      for attempt in 1 2 3; do
+          "$BIN" "$@" < "$stdin_file"
+          rc=$?
+          if [ "$rc" -ne 138 ]; then
+              break
+          fi
+          sleep 0.1
+      done
+
+      exit "$rc"
     EOS
     (bin/"git-foil").chmod 0o755
   end
