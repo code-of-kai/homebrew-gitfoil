@@ -49,6 +49,14 @@ class GitFoil < Formula
       # sees the same input.
 
       set -uo pipefail
+      # Run under the Erlang this CLI was *built* against -- not the user's
+      # ambient asdf/rbenv/kerl shims that happen to be first on PATH. The
+      # escript shebang is `#!/usr/bin/env escript`, so without this it picks
+      # up whatever escript leads PATH. If that runtime's NIF version is older
+      # than the build's, precompiled NIFs (pqclean/Kyber1024) fail their ABI
+      # check with {:bad_lib, ...} and `init`/`rekey` crash. Pinning to the
+      # brew erlang keeps build-erts == runtime-erts.
+      export PATH="#{Formula["erlang"].opt_bin}:$PATH"
       export GIT_FOIL_NIF_DIR="#{libexec}/priv/native"
       BIN="#{libexec}/git-foil"
 
