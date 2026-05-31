@@ -1,8 +1,8 @@
 class GitFoil < Formula
   desc "Quantum-resistant Git encryption CLI"
   homepage "https://github.com/code-of-kai/git-foil"
-  url "https://github.com/code-of-kai/git-foil/archive/refs/tags/v1.0.10.tar.gz"
-  sha256 "ce77e8396d1b5ca0ef2dc7bc001c5c4d60c302e583382b0d4d92138c9c216e6a"
+  url "https://github.com/code-of-kai/git-foil/archive/refs/tags/v1.1.0.tar.gz"
+  sha256 "c2fd8635ae29a094ca7b2c0cbd948f34dabe579752a249eb18342c1a15284bad"
   license "MIT"
 
   depends_on "elixir"
@@ -25,19 +25,28 @@ class GitFoil < Formula
 
     (bin/"git-foil").write <<~EOS
       #!/bin/bash
-      # For `clean` and `smudge` (git filter subcommands), retries on SIGBUS
-      # (exit 138 = 128 + signal 10) which can occur under concurrent
-      # invocations during BEAM NIF dlopen on macOS. The race lives in dyld's
-      # mmap + unified-buffer-cache interaction: many short-lived processes
-      # dlopening the same .so files in parallel can hit a page-translation
-      # fault in dyld4::Loader::mapSegments -> MachOFile::isMachO. Triggered
-      # most often by `git stash push -u` invoking the clean filter on many
-      # files in rapid succession.
+      # git >= 2.11 uses the long-running `filter.gitfoil.process` (the
+      # `filter-process` subcommand), which dlopens the crypto NIFs ONCE at
+      # startup and serves every file over one process -- so the concurrent
+      # dlopen race below cannot occur there. `filter-process` is a persistent
+      # process speaking the pkt-line protocol on stdin/stdout: it must NOT be
+      # wrapped in stdin buffering or retried, so it falls through to `exec`.
       #
-      # Retry is safe: clean/smudge are deterministic over their stdin, and
-      # the SIGBUS occurs during BEAM startup before stdin is read. Stdin is
-      # buffered to a private tempfile (mktemp default mode 0600) so each
-      # retry sees the same input.
+      # The per-file `clean`/`smudge` path remains as a fallback (old git, or a
+      # repo not yet reconfigured). There, many short-lived processes dlopen the
+      # same .so files in parallel and macOS dyld occasionally races -- a
+      # mmap/unified-buffer-cache page-translation fault in
+      # dyld4::Loader::mapSegments -> MachOFile::isMachO, triggered e.g. by
+      # `git stash push -u`. That race surfaces two ways, both retryable here:
+      #   * exit 138 (128 + SIGBUS/signal 10) -- a hard fault, OR
+      #   * exit 75  (EX_TEMPFAIL) -- the soft NIF-load failure git-foil now
+      #     reports distinctly so a transient load can be retried (it used to be
+      #     an indistinguishable generic exit 1 that aborted git).
+      #
+      # Retry is safe: clean/smudge are deterministic over their stdin, and the
+      # failure occurs during BEAM startup before stdin is read. Stdin is
+      # buffered to a private tempfile (mktemp default mode 0600) so each retry
+      # sees the same input.
 
       set -uo pipefail
       export GIT_FOIL_NIF_DIR="#{libexec}/priv/native"
@@ -56,12 +65,13 @@ class GitFoil < Formula
       cat > "$stdin_file"
 
       rc=0
-      for attempt in 1 2 3; do
+      for attempt in 1 2 3 4 5; do
           "$BIN" "$@" < "$stdin_file"
           rc=$?
-          if [ "$rc" -ne 138 ]; then
-              break
-          fi
+          case "$rc" in
+              138|75) ;;        # transient (SIGBUS / EX_TEMPFAIL): retry
+              *) break ;;
+          esac
           sleep 0.1
       done
 
