@@ -1,8 +1,8 @@
 class GitFoil < Formula
   desc "Quantum-resistant Git encryption CLI"
   homepage "https://github.com/code-of-kai/git-foil"
-  url "https://github.com/code-of-kai/git-foil/archive/refs/tags/v1.1.2.tar.gz"
-  sha256 "f420fc4d9919d3aa8dd81e12b288dbe9e3bf45e05a43c5e9803b1810101b26dd"
+  url "https://github.com/code-of-kai/git-foil/archive/refs/tags/v1.1.3.tar.gz"
+  sha256 "e39ae0db1d82977584dc2afa9d5a89aa681110f57be6739a5f8b0b5c4ad769b6"
   license "MIT"
 
   depends_on "elixir"
@@ -15,10 +15,24 @@ class GitFoil < Formula
     system "mix", "local.hex", "--force"
     system "mix", "local.rebar", "--force"
     system "mix", "deps.get"
+
+    # A single `mix compile` is sufficient: RustlerLoader `require`s the five
+    # NIF modules, so Mix builds their crates (and emits the `.so` files) BEFORE
+    # RustlerLoader compiles and embeds those bytes into its .beam. If the embed
+    # ever comes up empty, RustlerLoader raises at compile time and fails the
+    # build here rather than shipping an escript that exits 75 at runtime.
+    # (The old `mix compile <file>` "re-embed" step was a no-op: Mix skips an
+    # unchanged source, so it never forced the recompile it was meant to.)
     system "mix", "compile"
-    system "mix", "compile", "lib/git_foil/native/rustler_loader.ex"
 
     libexec.install "priv"
+
+    # Defense-in-depth: also ship the compiled crates on disk so the wrapper's
+    # GIT_FOIL_NIF_DIR points at real `.so` files, not just a `.gitkeep`. The
+    # escript embeds them too (primary path); this covers the case where the
+    # per-user runtime extraction cache is unavailable.
+    (libexec/"priv/native").mkpath
+    cp Dir["_build/prod/lib/git_foil/priv/native/*.so"], libexec/"priv/native"
 
     system "mix", "escript.build"
     libexec.install "git-foil"
